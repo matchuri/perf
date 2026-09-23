@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 4s
+  evaluation_interval: 5s
+
+storage:
+  tsdb:
+    retention:
+      time: 7d
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - prometheus:9090
+
+  - job_name: matchuri-backend
+    metrics_path: /api/v1/prometheus
+    static_configs:
+      - targets:
+          - host.docker.internal:8080
