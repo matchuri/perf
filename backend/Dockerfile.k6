@@ -1,0 +1,5 @@
+FROM grafana/xk6:1.4.14@sha256:2bf2f319554253656a00fa9224bc7b40bc401e45b9f04041074d62e39561c084 AS build
+RUN CGO_ENABLED=0 xk6 build v2.3.0 --with github.com/phymbert/xk6-sse@v0.2.0 --output /tmp/k6
+
+FROM ghcr.io/grafana/k6:2.3.0@sha256:2dd4756ec6e14e62778916e1eb850108e4b499304c02df56760fa0bdb0fba0b8
+COPY --from=build /tmp/k6 /usr/bin/k6

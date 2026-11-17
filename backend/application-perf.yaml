@@ -1,0 +1,64 @@
+server:
+  address: 0.0.0.0
+  forward-headers-strategy: none
+  tomcat:
+    accesslog:
+      enabled: false
+
+spring:
+  config:
+    import: configtree:/run/secrets/
+  docker:
+    compose:
+      enabled: false
+  mail:
+    host: 127.0.0.1
+    port: 2525
+    username: perf@matchuri.invalid
+    password: disabled
+
+matchuri:
+  member-deletion:
+    purge-cron: '-'
+  auth:
+    oauth-unlink:
+      poll-interval: 24h
+    jwt:
+      issuer: matchuri-perf
+    email-verification:
+      from: perf@matchuri.invalid
+  query-monitor:
+    enabled: false
+
+cloudflare:
+  r2:
+    endpoint: http://127.0.0.1:9000
+    bucket: matchuri-perf-unused
+    public-url: http://assets.matchuri.invalid
+
+captcha:
+  provider: local
+
+management:
+  server:
+    port: 8081
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+  metrics:
+    tags:
+      application: matchuri-perf
+    distribution:
+      percentiles-histogram:
+        jvm.gc.pause: true
+
+logging:
+  level:
+    org.springframework.web: INFO
+    net.ttddyy.dsproxy.listener: OFF
+    matchuri.backend.global.exception.GlobalExceptionHandler: OFF
+    matchuri.backend.domain.auth.service.AuthServiceImpl: WARN
