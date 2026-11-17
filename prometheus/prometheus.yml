@@ -38,7 +38,7 @@ scrape_configs:
       - files: [/etc/prometheus/perf-targets/host-a.json]
     metric_relabel_configs: &host_metrics
       - source_labels: [__name__]
-        regex: node_(time_seconds|cpu_seconds_total|memory_Mem(Available|Total)_bytes|filesystem_(avail|size)_bytes|network_(receive|transmit)_bytes_total)|windows_(system_system_up_time|cpu_time_total|memory_(available|physical_total)_bytes|os_physical_memory_free_bytes|cs_physical_memory_bytes|logical_disk_(free|size)_bytes|net_bytes_(received_total|sent_total|total))
+        regex: node_(time_seconds|cpu_seconds_total|memory_Mem(Available|Total)_bytes|filesystem_(avail|size)_bytes|network_(receive|transmit)_bytes_total)|windows_(system_system_up_time|cpu_time(_seconds)?_total|memory_(available|physical_total)_bytes|os_physical_memory_free_bytes|cs_physical_memory_bytes|logical_disk_(free|size)_bytes|net_bytes_(received_total|sent_total|total))
         action: keep
 
   - job_name: host-b

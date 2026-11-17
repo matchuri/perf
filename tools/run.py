@@ -59,6 +59,7 @@ SERIES = {
                       "data_reads", "data_writes")},
     "host_cpu_busy": (
         '1 - avg by(job) (rate(node_cpu_seconds_total{mode="idle",job=~"host-a|host-b"}[1m]))'
+        ' or 1 - avg by(job) (rate(windows_cpu_time_seconds_total{mode="idle",job=~"host-a|host-b"}[1m]))'
         ' or 1 - avg by(job) (rate(windows_cpu_time_total{mode="idle",job=~"host-a|host-b"}[1m]))'
     ),
     "host_memory_free_ratio": MEMORY_RATIO,
@@ -367,12 +368,15 @@ def stage_result(config, stage, args, identity, folder, directory, stage_id, fir
     tolerance = max(1, expected_starts * (1 - LIMITS["min_arrival_fraction"]))
     reached = bool(actual and not dropped and actual >= expected_starts - tolerance)
     process_success = process.returncode == 0 and bool(summary)
+    smoke_check_failed = (args.suite == "smoke" and process.returncode == 99
+                          and measurement.get("failed", 0) > 0
+                          and measurement.get("server_errors", 0) == 0 and reached)
     record = {
         "stage_id": stage_id, "plan": stage, "started_utc": utc(start), "ended_utc": utc(end),
         "measurement_window_utc": [utc(query_start), utc(query_end)],
         "process_exit_code": process.returncode, "execution_status": "aborted" if reason else "completed" if process_success else "failed",
         "arrival_status": "attained" if reached else "unattained",
-        "stop_reason": reason or ("k6_exit" if not process_success else None),
+        "stop_reason": reason or ("k6_exit" if not process_success and not smoke_check_failed else None),
         "measurement": measurement, "sse": summary.get("sse"),
     }
     # Write the core result before querying Prometheus so a later interruption leaves the stage usable.
@@ -460,6 +464,8 @@ def run(config, args, plan, folder, fixtures):
                     manifest["status"] = "stopped"
                     manifest["stop_reason"] = record["stop_reason"]
                     break
+                if record["execution_status"] != "completed":
+                    partial = True
                 if record["arrival_status"] != "attained":
                     if args.suite != "load":
                         manifest["status"] = "stopped"
@@ -479,7 +485,7 @@ def run(config, args, plan, folder, fixtures):
             manifest["ended_utc"] = utc()
             write_json(directory / "manifest.json", manifest)
         if manifest["status"] == "partial":
-            raise PerfError(f"Run {run_id} 부분 완료. 미달·누락 단계를 포함해 결과를 보존했습니다.")
+            raise PerfError(f"Run {run_id} 부분 완료. 실패·미달 단계의 결과를 보존했습니다.")
         if manifest["status"] != "completed":
             raise PerfError(f"Run {run_id} 중단 ({manifest['stop_reason']}). 부분 결과를 보존했습니다.")
     finally:

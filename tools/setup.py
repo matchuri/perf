@@ -21,8 +21,10 @@ REQUIRED_SERIES = (
     'jvm_threads_live_threads{job="matchuri-backend"}',
     'hikaricp_connections_active{job="matchuri-backend"}',
     'tomcat_threads_busy_threads{job="matchuri-backend"}',
-    'node_time_seconds{job="host-a"} or windows_system_system_up_time{job="host-a"} or windows_cpu_time_total{job="host-a"}',
-    'node_time_seconds{job="host-b"} or windows_system_system_up_time{job="host-b"} or windows_cpu_time_total{job="host-b"}',
+    *(
+        f'{{__name__=~"node_cpu_seconds_total|windows_cpu_time(_seconds)?_total",job="{job}",mode="idle"}}'
+        for job in ("host-a", "host-b")
+    ),
 )
 def private_dir(path):
     path.mkdir(parents=True, exist_ok=True, mode=0o700)

@@ -30,7 +30,8 @@ function matchesCheck(value, rule) {
 
 function matchesContract(response, expected) {
     if (expected.location) {
-        return response.headers.Location === expected.location;
+        const location = response.headers.Location;
+        return location === expected.location || location === config.baseUrl + expected.location;
     }
     const payload = parseJson(response);
     if (config.operation.kind === "health") {

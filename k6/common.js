@@ -107,7 +107,7 @@ export const sseTimeout = sseHold + httpTimeout;
 const gracefulStop = (isSse ? sseTimeout : httpTimeout) + 1;
 const measurementOffset = warmup ? warmup + gracefulStop : 0;
 
-export const config = { operation, suite, isSse };
+export const config = { operation, suite, isSse, baseUrl };
 export const metrics = {
     started: new Counter("perf_started"),
     completed: new Counter("perf_completed"),
