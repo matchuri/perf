@@ -1,21 +1,45 @@
 {
-  "annotations": {
-    "list": []
+  "title": "Matchuri · application and database",
+  "uid": "matchuri-spring-boot",
+  "tags": [
+    "matchuri",
+    "perf"
+  ],
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "timezone": "utc",
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-30m",
+    "to": "now"
   },
-  "editable": true,
-  "graphTooltip": 0,
-  "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "title": "Matchuri perf dashboards",
+      "type": "dashboards"
+    }
+  ],
   "panels": [
     {
+      "id": 1,
+      "title": "Scrape health",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps"
-        }
+          "unit": "short"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -23,33 +47,32 @@
         "x": 0,
         "y": 0
       },
-      "id": 1,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
       "targets": [
         {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"matchuri-backend\"}[$__rate_interval]))",
-          "legendFormat": "requests/sec",
-          "refId": "A"
+          "refId": "A",
+          "expr": "up{job=~\"matchuri-backend|mysql|host-a|host-b|prometheus\"}",
+          "legendFormat": "{{job}}"
+        },
+        {
+          "refId": "B",
+          "expr": "mysql_up{job=\"mysql\"}",
+          "legendFormat": "MySQL connection"
         }
-      ],
-      "title": "HTTP Requests / sec",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 2,
+      "title": "Host CPU",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit"
-        }
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -57,36 +80,37 @@
         "x": 12,
         "y": 0
       },
-      "id": 2,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
       "targets": [
         {
-          "expr": "system_cpu_usage{job=\"matchuri-backend\"}",
-          "legendFormat": "System",
-          "refId": "A"
+          "refId": "A",
+          "expr": "1 - avg by(job)(rate(node_cpu_seconds_total{job=~\"host-a|host-b\",mode=\"idle\"}[$__rate_interval]))",
+          "legendFormat": "{{job}} Linux"
         },
         {
+          "refId": "B",
+          "expr": "1 - avg by(job)(rate(windows_cpu_time_total{job=~\"host-a|host-b\",mode=\"idle\"}[$__rate_interval]))",
+          "legendFormat": "{{job}} Windows"
+        },
+        {
+          "refId": "C",
           "expr": "process_cpu_usage{job=\"matchuri-backend\"}",
-          "legendFormat": "Process",
-          "refId": "B"
+          "legendFormat": "JVM process"
         }
-      ],
-      "title": "CPU Usage",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 3,
+      "title": "Host memory",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
       "fieldConfig": {
-        "defaults": {}
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -94,48 +118,32 @@
         "x": 0,
         "y": 8
       },
-      "id": 3,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
       "targets": [
         {
-          "expr": "hikaricp_connections_active{job=\"matchuri-backend\"}",
-          "legendFormat": "Active",
-          "refId": "A"
+          "refId": "A",
+          "expr": "1 - node_memory_MemAvailable_bytes{job=~\"host-a|host-b\"} / node_memory_MemTotal_bytes{job=~\"host-a|host-b\"}",
+          "legendFormat": "{{job}} Linux"
         },
         {
-          "expr": "hikaricp_connections_idle{job=\"matchuri-backend\"}",
-          "legendFormat": "Idle",
-          "refId": "B"
-        },
-        {
-          "expr": "hikaricp_connections_pending{job=\"matchuri-backend\"}",
-          "legendFormat": "Pending",
-          "refId": "C"
-        },
-        {
-          "expr": "hikaricp_connections_max{job=\"matchuri-backend\"}",
-          "legendFormat": "Max",
-          "refId": "D"
+          "refId": "B",
+          "expr": "1 - windows_memory_available_bytes{job=~\"host-a|host-b\"} / windows_memory_physical_total_bytes{job=~\"host-a|host-b\"}",
+          "legendFormat": "{{job}} Windows"
         }
-      ],
-      "title": "HikariCP Connections",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 4,
+      "title": "Host network by interface",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "bytes"
-        }
+          "unit": "Bps"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -143,45 +151,476 @@
         "x": 12,
         "y": 8
       },
-      "id": 4,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(node_network_receive_bytes_total{job=~\"host-a|host-b\",device!~\"lo|veth.*|docker.*|br-.*\"}[$__rate_interval])",
+          "legendFormat": "{{job}} {{device}} RX"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(node_network_transmit_bytes_total{job=~\"host-a|host-b\",device!~\"lo|veth.*|docker.*|br-.*\"}[$__rate_interval])",
+          "legendFormat": "{{job}} {{device}} TX"
+        },
+        {
+          "refId": "C",
+          "expr": "rate(windows_net_bytes_total{job=~\"host-a|host-b\"}[$__rate_interval])",
+          "legendFormat": "{{job}} {{nic}} Windows"
         }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Host disk free",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
       },
       "targets": [
         {
-          "expr": "sum(jvm_memory_used_bytes{job=\"matchuri-backend\",area=\"heap\"})",
-          "legendFormat": "Heap Used",
-          "refId": "A"
+          "refId": "A",
+          "expr": "node_filesystem_avail_bytes{job=~\"host-a|host-b\",fstype!~\"tmpfs|overlay|squashfs|ramfs\"} / node_filesystem_size_bytes{job=~\"host-a|host-b\"}",
+          "legendFormat": "{{job}} {{mountpoint}}"
         },
         {
-          "expr": "sum(jvm_memory_max_bytes{job=\"matchuri-backend\",area=\"heap\"})",
-          "legendFormat": "Heap Max",
-          "refId": "B"
+          "refId": "B",
+          "expr": "windows_logical_disk_free_bytes{job=~\"host-a|host-b\",volume=~\"[A-Za-z]:\"} / windows_logical_disk_size_bytes{job=~\"host-a|host-b\"}",
+          "legendFormat": "{{job}} {{volume}}"
         }
-      ],
-      "title": "JVM Heap",
-      "type": "timeseries"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Spring MVC request rate by route",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "description": "Health probes are excluded from application route rates. The isolated health workload is visible in the k6 dashboard.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (method,uri,status)(rate(http_server_requests_seconds_count{job=\"matchuri-backend\",uri!~\"UNKNOWN|NOT_FOUND|REDIRECTION|/api/v1/health\"}[$__rate_interval]))",
+          "legendFormat": "{{method}} {{uri}} {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Spring MVC p95 by route",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,method,uri)(rate(http_server_requests_seconds_bucket{job=\"matchuri-backend\",uri!~\"UNKNOWN|NOT_FOUND|REDIRECTION|/api/v1/health\"}[$__rate_interval])))",
+          "legendFormat": "{{method}} {{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "JVM memory",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(area)(jvm_memory_used_bytes{job=\"matchuri-backend\"})",
+          "legendFormat": "{{area}} used"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(jvm_memory_max_bytes{job=\"matchuri-backend\",area=\"heap\"} > 0)",
+          "legendFormat": "Heap limit"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "JVM and Tomcat threads",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_threads_live_threads{job=\"matchuri-backend\"}",
+          "legendFormat": "JVM live"
+        },
+        {
+          "refId": "B",
+          "expr": "tomcat_threads_busy_threads{job=\"matchuri-backend\"}",
+          "legendFormat": "Tomcat {{name}} busy"
+        },
+        {
+          "refId": "C",
+          "expr": "tomcat_threads_config_max_threads{job=\"matchuri-backend\"}",
+          "legendFormat": "Tomcat {{name}} max"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "GC pause time",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,cause)(rate(jvm_gc_pause_seconds_bucket{job=\"matchuri-backend\"}[$__rate_interval])))",
+          "legendFormat": "p95 {{cause}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by(cause)(rate(jvm_gc_pause_seconds_sum{job=\"matchuri-backend\"}[$__rate_interval])) / sum by(cause)(rate(jvm_gc_pause_seconds_count{job=\"matchuri-backend\"}[$__rate_interval]))",
+          "legendFormat": "Average {{cause}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "HikariCP connections",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_active{job=\"matchuri-backend\"}",
+          "legendFormat": "active {{pool}}"
+        },
+        {
+          "refId": "B",
+          "expr": "hikaricp_connections_idle{job=\"matchuri-backend\"}",
+          "legendFormat": "idle {{pool}}"
+        },
+        {
+          "refId": "C",
+          "expr": "hikaricp_connections_pending{job=\"matchuri-backend\"}",
+          "legendFormat": "pending {{pool}}"
+        },
+        {
+          "refId": "D",
+          "expr": "hikaricp_connections_max{job=\"matchuri-backend\"}",
+          "legendFormat": "max {{pool}}"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "HikariCP timeouts",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(hikaricp_connections_timeout_total{job=\"matchuri-backend\"}[$__rate_interval])",
+          "legendFormat": "{{pool}}"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "MySQL connections and threads",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mysql_global_status_threads_connected{job=\"mysql\"}",
+          "legendFormat": "Connected"
+        },
+        {
+          "refId": "B",
+          "expr": "mysql_global_status_threads_running{job=\"mysql\"}",
+          "legendFormat": "Running"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "InnoDB physical I/O",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mysql_global_status_innodb_data_read{job=\"mysql\"}[$__rate_interval])",
+          "legendFormat": "Read"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(mysql_global_status_innodb_data_written{job=\"mysql\"}[$__rate_interval])",
+          "legendFormat": "Written"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "InnoDB buffer misses",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mysql_global_status_innodb_buffer_pool_reads{job=\"mysql\"}[$__rate_interval]) / rate(mysql_global_status_innodb_buffer_pool_read_requests{job=\"mysql\"}[$__rate_interval])",
+          "legendFormat": "Physical reads / read requests"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "InnoDB row lock waits",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mysql_global_status_innodb_row_lock_waits{job=\"mysql\"}[$__rate_interval])",
+          "legendFormat": "Waits / sec"
+        },
+        {
+          "refId": "B",
+          "expr": "mysql_global_status_innodb_row_lock_current_waits{job=\"mysql\"}",
+          "legendFormat": "Waiting now"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Backend and MySQL uptime",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - process_start_time_seconds{job=\"matchuri-backend\"}",
+          "legendFormat": "JVM"
+        },
+        {
+          "refId": "B",
+          "expr": "mysql_global_status_uptime{job=\"mysql\"}",
+          "legendFormat": "MySQL"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Scrape duration",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 64
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "scrape_duration_seconds{job=~\"matchuri-backend|mysql|host-a|host-b|prometheus\"}",
+          "legendFormat": "{{job}}"
+        }
+      ]
     }
-  ],
-  "refresh": "5s",
-  "schemaVersion": 39,
-  "tags": [
-    "spring-boot",
-    "load-test"
-  ],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-15m",
-    "to": "now"
-  },
-  "timezone": "browser",
-  "title": "Spring Boot Load Test",
-  "uid": "matchuri-spring-boot",
-  "version": 1
+  ]
 }

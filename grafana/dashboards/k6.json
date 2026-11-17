@@ -1,17 +1,71 @@
 {
-  "annotations": {
-    "list": []
+  "title": "Matchuri · k6",
+  "uid": "matchuri-k6",
+  "tags": [
+    "matchuri",
+    "perf"
+  ],
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": false,
+  "timezone": "utc",
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-30m",
+    "to": "now"
   },
-  "editable": true,
-  "graphTooltip": 0,
-  "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [
+        "perf"
+      ],
+      "title": "Matchuri perf dashboards",
+      "type": "dashboards"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "uid": "prometheus",
+          "type": "prometheus"
+        },
+        "definition": "label_values(k6_perf_started_total, run_id)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Stage run ID",
+        "multi": false,
+        "name": "run_id",
+        "options": [],
+        "query": {
+          "query": "label_values(k6_perf_started_total, run_id)",
+          "refId": "runId"
+        },
+        "refresh": 2,
+        "regex": "",
+        "sort": 2,
+        "type": "query"
+      }
+    ]
+  },
   "panels": [
     {
+      "id": 1,
+      "title": "HTTP arrivals and completions",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
+      "description": "Rates use Prometheus sample windows. Use the saved stage summary for exact measurement-window counts.",
       "fieldConfig": {
         "defaults": {
           "unit": "reqps"
@@ -24,29 +78,43 @@
         "x": 0,
         "y": 0
       },
-      "id": 1,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
       "targets": [
         {
-          "expr": "sum(irate(k6_http_reqs_total[$__rate_interval]))",
-          "legendFormat": "requests/sec",
-          "refId": "A"
+          "refId": "A",
+          "expr": "max(k6_perf_target_rate{run_id=\"$run_id\",phase=\"measurement\",kind!=\"sse\"})",
+          "legendFormat": "Target"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(k6_perf_started_total{run_id=\"$run_id\",phase=\"measurement\",kind!=\"sse\"}[$__rate_interval]))",
+          "legendFormat": "Started"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(rate(k6_perf_completed_in_window_total{run_id=\"$run_id\",phase=\"measurement\",kind!=\"sse\"}[$__rate_interval]))",
+          "legendFormat": "Completed"
+        },
+        {
+          "refId": "D",
+          "expr": "sum(rate(k6_perf_success_in_window_total{run_id=\"$run_id\",phase=\"measurement\",kind!=\"sse\"}[$__rate_interval]))",
+          "legendFormat": "Succeeded"
+        },
+        {
+          "refId": "E",
+          "expr": "sum(rate(k6_dropped_iterations_total{run_id=\"$run_id\",scenario=\"measurement\",kind!=\"sse\"}[$__rate_interval]))",
+          "legendFormat": "Dropped"
         }
-      ],
-      "title": "Requests / sec",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 2,
+      "title": "HTTP latency",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
+      "description": "Percentiles are calculated from native histograms within each time window.",
       "fieldConfig": {
         "defaults": {
           "unit": "s"
@@ -59,34 +127,33 @@
         "x": 12,
         "y": 0
       },
-      "id": 2,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
       "targets": [
         {
-          "expr": "avg(k6_http_req_duration_p95)",
-          "legendFormat": "p95",
-          "refId": "A"
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum(rate(k6_perf_http_duration_seconds{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])))",
+          "legendFormat": "p50"
         },
         {
-          "expr": "avg(k6_http_req_duration_p99)",
-          "legendFormat": "p99",
-          "refId": "B"
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum(rate(k6_perf_http_duration_seconds{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum(rate(k6_perf_http_duration_seconds{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])))",
+          "legendFormat": "p99"
         }
-      ],
-      "title": "HTTP Request Duration",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 3,
+      "title": "Unexpected error fraction",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
+      "description": "Expected failure cases are tracked by their contract checks. Missing samples remain blank.",
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit"
@@ -99,31 +166,32 @@
         "x": 0,
         "y": 8
       },
-      "id": 3,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        }
-      },
       "targets": [
         {
-          "expr": "avg(k6_http_req_failed_rate)",
-          "legendFormat": "failed",
-          "refId": "A"
+          "refId": "A",
+          "expr": "sum(rate(k6_perf_failed_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])) / sum(rate(k6_perf_completed_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval]))",
+          "legendFormat": "Unexpected failures"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(k6_perf_server_error_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])) / sum(rate(k6_perf_completed_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval]))",
+          "legendFormat": "Server errors or timeouts"
         }
-      ],
-      "title": "HTTP Request Failed",
-      "type": "timeseries"
+      ]
     },
     {
+      "id": 4,
+      "title": "Virtual users",
+      "type": "timeseries",
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "prometheus",
+        "type": "prometheus"
       },
       "fieldConfig": {
-        "defaults": {}
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -131,40 +199,133 @@
         "x": 12,
         "y": 8
       },
-      "id": 4,
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(k6_vus{run_id=\"$run_id\"})",
+          "legendFormat": "Active VUs"
+        },
+        {
+          "refId": "B",
+          "expr": "max(k6_vus_max{run_id=\"$run_id\"})",
+          "legendFormat": "VU cap"
         }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "SSE connections",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "description": "Active measurement connections are estimated by subtracting closes from successful opens.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
       },
       "targets": [
         {
-          "expr": "sum(k6_vus)",
-          "legendFormat": "VUs",
-          "refId": "A"
+          "refId": "A",
+          "expr": "max(k6_perf_target_rate{run_id=\"$run_id\",phase=\"measurement\",kind=\"sse\"})",
+          "legendFormat": "Connection target / sec"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(k6_perf_sse_connected_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval]))",
+          "legendFormat": "Connections / sec"
+        },
+        {
+          "refId": "C",
+          "expr": "clamp_min(sum(k6_perf_sse_connected_total{run_id=\"$run_id\",phase=\"measurement\"}) - (sum(k6_perf_sse_closed_total{run_id=\"$run_id\",phase=\"measurement\"}) or vector(0)), 0)",
+          "legendFormat": "Active"
+        },
+        {
+          "refId": "D",
+          "expr": "sum(rate(k6_dropped_iterations_total{run_id=\"$run_id\",scenario=\"measurement\",kind=\"sse\"}[$__rate_interval]))",
+          "legendFormat": "Dropped / sec"
         }
-      ],
-      "title": "Virtual Users",
-      "type": "timeseries"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "SSE first event",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum(rate(k6_perf_sse_first_event_seconds{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum(rate(k6_perf_sse_first_event_seconds{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum(rate(k6_perf_sse_first_event_seconds{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval])))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "SSE heartbeat and disconnects",
+      "type": "timeseries",
+      "datasource": {
+        "uid": "prometheus",
+        "type": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(k6_perf_sse_heartbeat_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval]))",
+          "legendFormat": "Heartbeat"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(k6_perf_sse_unexpected_disconnect_total{run_id=\"$run_id\",phase=\"measurement\"}[$__rate_interval]))",
+          "legendFormat": "Unexpected disconnect"
+        }
+      ]
     }
-  ],
-  "refresh": "5s",
-  "schemaVersion": 39,
-  "tags": [
-    "k6",
-    "load-test"
-  ],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-15m",
-    "to": "now"
-  },
-  "timezone": "browser",
-  "title": "k6 Load Test",
-  "uid": "matchuri-k6",
-  "version": 1
+  ]
 }

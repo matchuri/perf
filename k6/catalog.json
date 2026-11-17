@@ -1,0 +1,447 @@
+{
+  "schema": 1,
+  "operations": [
+    {
+      "id": "OPS.010.000",
+      "method": "GET",
+      "path": "/api/v1/health",
+      "kind": "health",
+      "rationale": "Actuator 상태 응답과 측정 중 관측 기준",
+      "cases": [
+        {"id":"readiness","expected":{"checks":[{"path":"status","equals":"UP"}]}}
+      ]
+    },
+    {
+      "id": "OPS.020.000",
+      "method": "GET",
+      "path": "/api/v1/home",
+      "kind": "http",
+      "rationale": "사용자·개인 추천·활성 그룹 이력과 정렬을 함께 수행",
+      "cases": [
+        {"id":"empty","fixture":"OPS.020.000/empty","expected":{"checks":[{"path":"recentGroupActivities.items","length":0},{"path":"personalRecommendationHistory.items","length":0}]}},
+        {"id":"typical","fixture":"OPS.020.000/typical","suites":["smoke"],"expected":{"checks":[{"path":"personalRecommendationHistory.items","lengthAtLeast":1}]}},
+        {"id":"heavy","fixture":"OPS.020.000/heavy","expected":{"checks":[{"path":"recentGroupActivities.items","lengthAtLeast":300},{"path":"personalRecommendationHistory.items","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "AUTH.030.000",
+      "method": "GET",
+      "path": "/api/v1/members/exists/{loginId}",
+      "kind": "http",
+      "rationale": "로그인 ID의 존재 조회 hit/miss",
+      "cases": [
+        {"id":"hit","fixture":"AUTH.030.000/hit","expected":{"checks":[{"path":"exists","equals":true}]}},
+        {"id":"miss","params":{"loginId":"perf-no-such-login-999999"},"expected":{"checks":[{"path":"exists","equals":false}]}}
+      ]
+    },
+    {
+      "id": "AUTH.040.000",
+      "method": "GET",
+      "path": "/api/v1/members/exists/nickname/{nickname}",
+      "kind": "http",
+      "rationale": "닉네임의 존재 조회 hit/miss",
+      "cases": [
+        {"id":"hit","fixture":"AUTH.040.000/hit","expected":{"checks":[{"path":"exists","equals":true}]}},
+        {"id":"miss","params":{"nickname":"perf_no_such_nickname"},"expected":{"checks":[{"path":"exists","equals":false}]}}
+      ]
+    },
+    {
+      "id": "AUTH.060.000",
+      "method": "GET",
+      "path": "/api/v1/auth/oauth2/{provider}",
+      "kind": "oauth",
+      "rationale": "외부 OAuth 제공자를 따라가지 않는 로컬 로그인 리다이렉트 계약",
+      "cases": [
+        {"id":"supported","suites":["smoke"],"params":{"provider":"google"},"expected":{"status":302,"location":"/oauth2/authorization/google"}},
+        {"id":"unsupported","suites":["smoke"],"params":{"provider":"perf-unsupported"},"expected":{"status":400,"errorCode":"AUTH_OAUTH2_PROVIDER_NOT_SUPPORTED"}}
+      ]
+    },
+    {
+      "id": "ONB.010.000",
+      "method": "GET",
+      "path": "/api/v1/member-agreements/required-status",
+      "kind": "http",
+      "rationale": "현재 약관 동의 여부에 따른 상태 계산",
+      "cases": [
+        {"id":"complete","fixture":"ONB.010.000/complete","expected":{"checks":[{"path":"requiredAgreementsCompleted","equals":true},{"path":"missingAgreementTypes","length":0}]}},
+        {"id":"missing","fixture":"ONB.010.000/missing","expected":{"checks":[{"path":"requiredAgreementsCompleted","equals":false},{"path":"missingAgreementTypes","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "ONB.030.000",
+      "method": "GET",
+      "path": "/api/v1/members/me",
+      "kind": "http",
+      "rationale": "회원 프로필과 이미지 메타데이터 조회",
+      "cases": [
+        {"id":"with-image","fixture":"ONB.030.000/with-image","expected":{"checks":[{"path":"profileImageUrl","type":"string"}]}},
+        {"id":"without-image","fixture":"ONB.030.000/without-image","expected":{"checks":[{"path":"profileImageUrl","equals":null}]}}
+      ]
+    },
+    {
+      "id": "ONB.060.000",
+      "method": "GET",
+      "path": "/api/v1/members/me/taste-profile",
+      "kind": "http",
+      "rationale": "취향 없음과 여러 종류의 연관 매핑 비교",
+      "cases": [
+        {"id":"empty","fixture":"ONB.060.000/empty","expected":{"checks":[{"path":"attributeCategories","length":0},{"path":"restrictionIngredients","length":0},{"path":"dislikedMenuItems","length":0}]}},
+        {"id":"populated","fixture":"ONB.060.000/populated","expected":{"checks":[{"path":"attributeCategories","lengthAtLeast":1},{"path":"restrictionIngredients","lengthAtLeast":1},{"path":"dislikedMenuItems","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "ONB.090.000",
+      "method": "GET",
+      "path": "/api/v1/members/me/location",
+      "kind": "http",
+      "rationale": "위치 레코드 유무에 따른 응답 크기와 조회",
+      "cases": [
+        {"id":"unset","fixture":"ONB.090.000/unset","expected":{"checks":[{"path":"","equals":null}]}},
+        {"id":"set","fixture":"ONB.090.000/set","expected":{"checks":[{"path":"latitude","type":"number"},{"path":"longitude","type":"number"}]}}
+      ]
+    },
+    {
+      "id": "ONB.120.000",
+      "method": "GET",
+      "path": "/api/v1/members/profile/preset-image",
+      "kind": "http",
+      "rationale": "활성 프리셋 수에 따른 전체 목록. 데이터셋별 fixture를 비교",
+      "cases": [
+        {"id":"baseline","fixture":"ONB.120.000/baseline","expected":{"checks":[{"path":"","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "REF.010.000",
+      "method": "GET",
+      "path": "/api/v1/attribute-categories",
+      "kind": "http",
+      "rationale": "유형 필터가 기준 데이터 응답 크기를 바꾸는 경로",
+      "cases": [
+        {"id":"all","expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"filtered","query":{"categoryTypes":["FOOD_CATEGORY","COOKING_METHOD"]},"expected":{"checks":[{"path":"","lengthAtLeast":1},{"path":"0.categoryType","type":"string"}]}}
+      ]
+    },
+    {
+      "id": "REF.020.000",
+      "method": "GET",
+      "path": "/api/v1/restriction-ingredients",
+      "kind": "http",
+      "rationale": "검색 선택도와 알레르기 조건이 목록 크기를 바꾸는 경로",
+      "cases": [
+        {"id":"all","expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"allergen-search","query":{"query":"밀","allergen":true},"expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"no-match","suites":["smoke"],"query":{"query":"perf-none-999"},"expected":{"checks":[{"path":"","length":0}]}}
+      ]
+    },
+    {
+      "id": "REF.030.000",
+      "method": "GET",
+      "path": "/api/v1/menu-items",
+      "kind": "http",
+      "rationale": "페이지 없는 문자열 검색과 속성·재료 EXISTS 필터",
+      "cases": [
+        {"id":"all","expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"combined","fixture":"REF.030.000/combined","expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"broad","suites":["smoke"],"query":{"query":"국"},"expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"narrow","suites":["smoke"],"query":{"query":"냉면"},"expected":{"checks":[{"path":"","lengthAtLeast":1}]}},
+        {"id":"no-match","suites":["smoke"],"query":{"query":"perf-none-999"},"expected":{"checks":[{"path":"","length":0}]}}
+      ]
+    },
+    {
+      "id": "REF.040.000",
+      "method": "GET",
+      "path": "/api/v1/menu-items/{menuItemId}",
+      "kind": "http",
+      "rationale": "메뉴 상세의 참조 매핑과 이미지 조합",
+      "cases": [
+        {"id":"sparse","fixture":"REF.040.000/sparse","expected":{"checks":[{"path":"id","type":"number"},{"path":"thumbnailUrl","equals":null}]}},
+        {"id":"dense","fixture":"REF.040.000/dense","expected":{"checks":[{"path":"id","type":"number"},{"path":"thumbnailUrl","type":"string"},{"path":"attributeCategories","lengthAtLeast":1},{"path":"ingredients","lengthAtLeast":1}]}},
+        {"id":"not-found","suites":["smoke"],"params":{"menuItemId":999999999},"expected":{"status":404,"errorCode":"MENU_NOT_FOUND"}}
+      ]
+    },
+    {
+      "id": "REC.010.000",
+      "method": "POST",
+      "path": "/api/v1/guest/recommendations",
+      "kind": "http",
+      "rationale": "전체 메뉴 기반 비회원 추천 계산과 제한 조건에 따른 후보 집합",
+      "cases": [
+        {"id":"simple","body":{"contextJson":{"mealTime":"LUNCH"}},"expected":{"checks":[{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"complex","fixture":"REC.010.000/complex","expected":{"checks":[{"path":"candidates","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "REC.020.000",
+      "method": "GET",
+      "path": "/api/v1/personal/recommendations",
+      "kind": "http",
+      "rationale": "현재 호출 가능한 deprecated v1 개인 추천 이력의 페이지 조회",
+      "cases": [
+        {"id":"first","fixture":"REC.020.000/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"REC.020.000/deep-page","query":{"page":2,"size":100},"expected":{"checks":[{"path":"content","length":100}]}},
+        {"id":"empty","fixture":"REC.020.000/empty","suites":["smoke"],"expected":{"checks":[{"path":"content","length":0}]}}
+      ]
+    },
+    {
+      "id": "REC.020.500",
+      "method": "GET",
+      "path": "/api/v2/personal/recommendations",
+      "kind": "http",
+      "rationale": "선택 완료 필터와 대표 후보·이미지·카테고리 조합",
+      "cases": [
+        {"id":"first","fixture":"REC.020.500/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"REC.020.500/deep-page","query":{"page":2,"size":100},"expected":{"checks":[{"path":"content","length":100}]}},
+        {"id":"empty","fixture":"REC.020.500/empty","suites":["smoke"],"expected":{"checks":[{"path":"content","length":0}]}}
+      ]
+    },
+    {
+      "id": "REC.050.000",
+      "method": "GET",
+      "path": "/api/v1/personal/recommendations/{requestId}",
+      "kind": "http",
+      "rationale": "추천 상태와 후보 정보가 다른 상세 조회",
+      "cases": [
+        {"id":"open","fixture":"REC.050.000/open","expected":{"checks":[{"path":"status","equals":"OPEN"},{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"selected","fixture":"REC.050.000/selected","expected":{"checks":[{"path":"status","equals":"SELECTED"},{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"first-expiration","fixture":"REC.050.000/first-expiration","suites":["smoke"],"oneShot":true,"expected":{"checks":[{"path":"status","equals":"EXPIRED"}]}}
+      ]
+    },
+    {
+      "id": "REC.060.000",
+      "method": "GET",
+      "path": "/api/v1/personal/recommendations/{requestId}/candidates",
+      "kind": "http",
+      "rationale": "개인 추천 후보와 메뉴 참조 응답",
+      "cases": [
+        {"id":"open","fixture":"REC.060.000/open","expected":{"checks":[{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"selected","fixture":"REC.060.000/selected","expected":{"checks":[{"path":"candidates","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "GROUP.020.000",
+      "method": "GET",
+      "path": "/api/v1/groups",
+      "kind": "http",
+      "rationale": "그룹 멤버십 상태 필터, 정렬, 목록 건수 및 페이지 깊이",
+      "cases": [
+        {"id":"first","fixture":"GROUP.020.000/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"GROUP.020.000/deep-page","query":{"page":2,"size":100,"status":"ACTIVE"},"expected":{"checks":[{"path":"content","length":100}]}},
+        {"id":"empty","fixture":"GROUP.020.000/empty","suites":["smoke"],"expected":{"checks":[{"path":"content","length":0}]}}
+      ]
+    },
+    {
+      "id": "GROUP.030.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}",
+      "kind": "http",
+      "rationale": "활성 구성원, 저장 위치와 최신 추천 조합",
+      "cases": [
+        {"id":"small","fixture":"GROUP.030.000/small","expected":{"checks":[{"path":"members","lengthAtLeast":1}]}},
+        {"id":"large","fixture":"GROUP.030.000/large","expected":{"checks":[{"path":"members","lengthAtLeast":20}]}}
+      ]
+    },
+    {
+      "id": "GROUP.030.500",
+      "method": "GET",
+      "path": "/api/v2/groups/{groupId}",
+      "kind": "http",
+      "rationale": "활성 구성원, 저장 위치와 최신 추천 조합",
+      "cases": [
+        {"id":"small","fixture":"GROUP.030.500/small","expected":{"checks":[{"path":"members","lengthAtLeast":1}]}},
+        {"id":"large","fixture":"GROUP.030.500/large","expected":{"checks":[{"path":"members","lengthAtLeast":20}]}}
+      ]
+    },
+    {
+      "id": "GROUP.050.500",
+      "method": "GET",
+      "path": "/api/v1/invites/me/exists",
+      "kind": "http",
+      "rationale": "유효한 대기 초대 존재 여부 조회",
+      "cases": [
+        {"id":"pending","fixture":"GROUP.050.500/pending","expected":{"checks":[{"path":"exists","equals":true}]}},
+        {"id":"none","fixture":"GROUP.050.500/none","expected":{"checks":[{"path":"exists","equals":false}]}}
+      ]
+    },
+    {
+      "id": "GROUP.060.000",
+      "method": "GET",
+      "path": "/api/v1/groups/invites/me",
+      "kind": "http",
+      "rationale": "상태·유효 기간 필터와 목록 페이지 비용",
+      "cases": [
+        {"id":"first","fixture":"GROUP.060.000/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"GROUP.060.000/deep-page","query":{"page":2,"size":100,"status":"PENDING"},"expected":{"checks":[{"path":"content","length":100}]}},
+        {"id":"accepted","fixture":"GROUP.060.000/accepted","suites":["smoke"],"query":{"status":"ACCEPTED"},"expected":{"checks":[{"path":"content","length":8},{"path":"content.0.status","equals":"ACCEPTED"}]}},
+        {"id":"empty","fixture":"GROUP.060.000/empty","suites":["smoke"],"expected":{"checks":[{"path":"content","length":0}]}}
+      ]
+    },
+    {
+      "id": "GROUP.060.500",
+      "method": "GET",
+      "path": "/api/v2/invites/me",
+      "kind": "http",
+      "rationale": "상태·유효 기간 필터와 목록 페이지 비용",
+      "cases": [
+        {"id":"first","fixture":"GROUP.060.500/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"GROUP.060.500/deep-page","query":{"page":2,"size":100,"status":"PENDING"},"expected":{"checks":[{"path":"content","length":100}]}},
+        {"id":"accepted","fixture":"GROUP.060.500/accepted","suites":["smoke"],"query":{"status":"ACCEPTED"},"expected":{"checks":[{"path":"content","length":8},{"path":"content.0.id","type":"number"}]}},
+        {"id":"empty","fixture":"GROUP.060.500/empty","suites":["smoke"],"expected":{"checks":[{"path":"content","length":0}]}}
+      ]
+    },
+    {
+      "id": "GROUP.130.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}/invite-link",
+      "kind": "http",
+      "rationale": "소유자 권한과 유효 링크 결과 유무",
+      "cases": [
+        {"id":"valid","fixture":"GROUP.130.000/valid","expected":{"checks":[{"path":"token","type":"string"}]}},
+        {"id":"absent","fixture":"GROUP.130.000/absent","expected":{"checks":[{"path":"","equals":null}]}}
+      ]
+    },
+    {
+      "id": "GROUP.150.000",
+      "method": "POST",
+      "path": "/api/v1/groups/invite-links/preview",
+      "kind": "http",
+      "rationale": "유효 링크와 그룹 활성 멤버 집계",
+      "cases": [
+        {"id":"small","fixture":"GROUP.150.000/small","expected":{"checks":[{"path":"memberCount","minimum":1}]}},
+        {"id":"large","fixture":"GROUP.150.000/large","expected":{"checks":[{"path":"memberCount","minimum":20}]}},
+        {"id":"expired","fixture":"GROUP.150.000/expired","suites":["smoke"],"expected":{"status":409,"errorCode":"GROUP_INVITE_LINK_EXPIRED"}}
+      ]
+    },
+    {
+      "id": "GREC.020.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}/recommendations/{sessionId}/readiness",
+      "kind": "http",
+      "rationale": "멤버 수 및 준비 상태가 바뀌는 진행률 조회",
+      "cases": [
+        {"id":"small","fixture":"GREC.020.000/small","expected":{"checks":[{"path":"members","lengthAtLeast":1},{"path":"progress.readyMemberCount","minimum":1}]}},
+        {"id":"large","fixture":"GREC.020.000/large","expected":{"checks":[{"path":"members","lengthAtLeast":20},{"path":"progress.readyMemberCount","minimum":10}]}}
+      ]
+    },
+    {
+      "id": "GREC.040.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}/recommendations",
+      "kind": "http",
+      "rationale": "그룹 세션 이력 정렬과 깊은 페이지 비용",
+      "cases": [
+        {"id":"first","fixture":"GREC.040.000/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"GREC.040.000/deep-page","query":{"page":2,"size":100},"expected":{"checks":[{"path":"content","length":100}]}}
+      ]
+    },
+    {
+      "id": "GREC.040.500",
+      "method": "GET",
+      "path": "/api/v2/groups/{groupId}/recommendations",
+      "kind": "http",
+      "rationale": "그룹 세션 이력 정렬과 깊은 페이지 비용",
+      "cases": [
+        {"id":"first","fixture":"GREC.040.500/first","expected":{"checks":[{"path":"content","lengthAtLeast":1}]}},
+        {"id":"deep-page","fixture":"GREC.040.500/deep-page","query":{"page":2,"size":100},"expected":{"checks":[{"path":"content","length":100}]}}
+      ]
+    },
+    {
+      "id": "GREC.050.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}/recommendations/{sessionId}",
+      "kind": "http",
+      "rationale": "추천 상세 상태, 후보, 투표·카테고리 조합",
+      "cases": [
+        {"id":"preparing","fixture":"GREC.050.000/preparing","expected":{"checks":[{"path":"status","equals":"PREPARING"}]}},
+        {"id":"open","fixture":"GREC.050.000/open","suites":["smoke"],"expected":{"checks":[{"path":"status","equals":"OPEN"},{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"finalized","fixture":"GREC.050.000/finalized","expected":{"checks":[{"path":"status","equals":"FINALIZED"},{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"first-expiration","fixture":"GREC.050.000/first-expiration","suites":["smoke"],"oneShot":true,"expected":{"checks":[{"path":"status","equals":"EXPIRED"}]}}
+      ]
+    },
+    {
+      "id": "GREC.060.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}/recommendations/{sessionId}/candidates",
+      "kind": "http",
+      "rationale": "열린 추천의 후보·투표 건수 집계와 종료 상태 검사",
+      "cases": [
+        {"id":"open","fixture":"GREC.060.000/open","expected":{"checks":[{"path":"candidates","lengthAtLeast":1}]}},
+        {"id":"with-votes","fixture":"GREC.060.000/with-votes","expected":{"checks":[{"path":"candidates","lengthAtLeast":1},{"path":"candidates.0.voteCount","minimum":1}]}},
+        {"id":"closed","fixture":"GREC.060.000/closed","suites":["smoke"],"expected":{"status":409,"errorCode":"GROUP_RECOMMENDATION_NOT_OPEN"}}
+      ]
+    },
+    {
+      "id": "RT.010.000",
+      "method": "GET",
+      "path": "/api/v1/realtime/events",
+      "kind": "sse",
+      "rationale": "사용자 스트림 최초 이벤트, heartbeat, 동시 연결 유지",
+      "cases": [
+        {"id":"member","fixture":"RT.010.000/member"},
+        {"id":"parallel","fixture":"RT.010.000/parallel"}
+      ]
+    },
+    {
+      "id": "RT.020.000",
+      "method": "GET",
+      "path": "/api/v1/groups/{groupId}/realtime/events",
+      "kind": "sse",
+      "rationale": "그룹별 연결 보유와 활성 멤버 조건",
+      "cases": [
+        {"id":"small","fixture":"RT.020.000/small"},
+        {"id":"large","fixture":"RT.020.000/large"}
+      ]
+    },
+    {
+      "id": "ADMIN.010.000",
+      "method": "GET",
+      "path": "/api/v1/admin/attribute-categories",
+      "kind": "http",
+      "rationale": "관리자 비페이지 목록. 데이터셋별 조회량을 비교",
+      "cases": [
+        {"id":"baseline","fixture":"ADMIN.010.000/baseline","expected":{"checks":[{"path":"","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "ADMIN.050.000",
+      "method": "GET",
+      "path": "/api/v1/admin/ingredients",
+      "kind": "http",
+      "rationale": "관리자 비페이지 목록. 데이터셋별 조회량을 비교",
+      "cases": [
+        {"id":"baseline","fixture":"ADMIN.050.000/baseline","expected":{"checks":[{"path":"","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "ADMIN.090.000",
+      "method": "GET",
+      "path": "/api/v1/admin/menu-items",
+      "kind": "http",
+      "rationale": "관리자 비페이지 목록. 데이터셋별 조회량을 비교",
+      "cases": [
+        {"id":"baseline","fixture":"ADMIN.090.000/baseline","expected":{"checks":[{"path":"","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "ADMIN.160.000",
+      "method": "GET",
+      "path": "/api/v1/admin/preset-profile-images",
+      "kind": "http",
+      "rationale": "관리자 비페이지 목록. 데이터셋별 조회량을 비교",
+      "cases": [
+        {"id":"baseline","fixture":"ADMIN.160.000/baseline","expected":{"checks":[{"path":"","lengthAtLeast":1}]}}
+      ]
+    },
+    {
+      "id": "ADMIN.135.000",
+      "method": "GET",
+      "path": "/api/v1/admin/menu-items/{menuItemId}",
+      "kind": "http",
+      "rationale": "관리자 메뉴 상세의 참조 매핑 수",
+      "cases": [
+        {"id":"sparse","fixture":"ADMIN.135.000/sparse","expected":{"checks":[{"path":"id","type":"number"}]}},
+        {"id":"dense","fixture":"ADMIN.135.000/dense","expected":{"checks":[{"path":"id","type":"number"},{"path":"attributeCategories","lengthAtLeast":1},{"path":"ingredients","lengthAtLeast":1}]}},
+        {"id":"inactive","fixture":"ADMIN.135.000/inactive","suites":["smoke"],"expected":{"checks":[{"path":"isActive","equals":false}]}}
+      ]
+    }
+  ]
+}

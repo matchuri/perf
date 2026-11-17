@@ -1,1 +1,7 @@
 .env
+perf-a.env
+perf-b.env
+runtime/
+results/
+__pycache__/
+.venv/
